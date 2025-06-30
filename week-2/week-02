@@ -1,0 +1,60 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Load the dataset
+df = pd.read_csv("afa2e701598d20110228.csv", sep=';')
+
+# Drop unnecessary columns
+df.drop(columns=['id', 'date'], inplace=True)
+
+# Create target variable: Potability
+df['Potability'] = (
+    (df['O2'] > 6) &
+    (df['NO3'] < 25) &
+    (df['NH4'] < 0.5) &
+    (df['PO4'] < 0.3)
+).astype(int)
+
+# Features and labels
+X = df.drop('Potability', axis=1)
+y = df['Potability']
+
+# Feature scaling
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Model training
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Prediction
+y_pred = model.predict(X_test)
+
+# Evaluation
+print("✅ Accuracy:", accuracy_score(y_test, y_pred))
+print("\n📋 Classification Report:\n", classification_report(y_test, y_pred))
+
+# Confusion Matrix
+sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.show()
+
+# Predict on new sample (example values)
+sample = np.array([[0.2, 2.5, 40.0, 10.0, 20.0, 0.04, 150.0, 0.25, 1000.0]])  # adjust as needed
+sample_scaled = scaler.transform(sample)
+prediction = model.predict(sample_scaled)
+print("\nPrediction for new sample:", "Potable ✅" if prediction[0] == 1 else "Not Potable ❌")
